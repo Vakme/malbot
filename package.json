@@ -1,0 +1,15 @@
+{
+  "name": "bot_new",
+  "version": "1.0.0",
+  "description": "Brand new bot for discord",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "FemDev",
+  "license": "ISC",
+  "dependencies": {
+    "discord.io": "^2.5.2",
+    "winston": "^2.3.1"
+  }
+}
