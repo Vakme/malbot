@@ -28,6 +28,12 @@ bot.on("guildMemberAdd", function(member) {
 });
 
 bot.on('message', function (user, userID, channelID, message, evt) {
+    if (message.toLowerCase().indexOf('python') !== -1)
+        bot.sendMessage({
+            to: channelID,
+            message: '<@342186363594211356>, aktywacja'
+        });
+
     //Wiadomości ogólne - ich nie dodajemy
     if (message.indexOf('Definitywnie?') !== -1)
         bot.sendMessage({
