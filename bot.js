@@ -17,14 +17,31 @@ bot.on('ready', function (evt) {
     logger.info('Logged in as: ');
     logger.info(bot.username + ' - (' + bot.id + ')');
 });
+
+bot.on("guildMemberAdd", function(member) {
+    logger.info(member.id);
+    bot.sendMessage({
+        to: 342050278964592640,
+        message: 'Witaj, <@' + member.id + '>'
+    });
+
+});
+
 bot.on('message', function (user, userID, channelID, message, evt) {
+    //Wiadomości ogólne - ich nie dodajemy
     if (message.indexOf('Definitywnie?') !== -1)
         bot.sendMessage({
             to: channelID,
             message: 'I ostatecznie!'
         });
-    if (message.indexOf('Malbocie') !== -1) {
+    else if (message.indexOf('Java') !== -1)
+        bot.sendMessage({
+            to: channelID,
+            message: 'Co za chłam! Tylko malbolge!'
+        });
+    else if (message.indexOf('Malbocie') !== -1) {
         if (message.indexOf('?') !== -1) {
+            //Do tablicy dopisz odpowiedzi na pytania
             var answers = ['Oczywiście', 'No co ty!', 'Niewykluczone', 'No', 'Tiaaa...', 'Definitywnie!'];
             var minimum = 0;
             var maximum = answers.length;
@@ -39,6 +56,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             logger.info(args);
             //args = args.splice(1);
 
+            //case - to teksty po przecinku, umieść je przed default! i Pamiętaj o break!
             switch (args) {
                 case ' podaj kawę':
                     bot.sendMessage({
