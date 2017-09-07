@@ -9,7 +9,12 @@
   "author": "FemDev",
   "license": "ISC",
   "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
     "discord.io": "^2.5.2",
+    "ontime": "0.0.3",
+    "request": "^2.81.0",
+    "unsplash-api": "^1.2.0",
+    "unsplash-js": "^4.6.0",
     "winston": "^2.3.1"
   }
 }
