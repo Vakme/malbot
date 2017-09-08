@@ -92,32 +92,41 @@ function pythonZen(channel) {
 }
 
 function coffee(channelID) {
-    var photo = photoArray[Math.floor(Math.random() * photoArray.length)];
-    bot.sendMessage({
-        to: channelID,
-        embed: {
-            title: 'Kawa!',
-            description: 'Oto kawa specjalnie dla ciebie!',
-            url: photo.links.self,
-            image: {
-                url: photo.urls.small
-            },
-            author: {
-                name: photo.user.name,
-                url: photo.user.portfolio_url
+    if(!Array.isArray(photoArray) || !photoArray.length) {
+        logger.info('Zjebałaś');
+        bot.sendMessage({
+            to: channelID,
+            message: 'Zdjęcia są ładowane. Spróbuj za chwilę.'
+        });
+    }
+    else {
+        var photo = photoArray[Math.floor(Math.random() * photoArray.length)];
+        bot.sendMessage({
+            to: channelID,
+            embed: {
+                title: 'Kawa!',
+                description: 'Oto kawa specjalnie dla ciebie!',
+                url: photo.links.self,
+                image: {
+                    url: photo.urls.small
+                },
+                author: {
+                    name: photo.user.name,
+                    url: photo.user.portfolio_url
+                }
             }
-        }
-    }, function (error, response) {
-        if(error != null)
-            logger.error(error);
-    });
+        }, function (error, response) {
+            if (error != null)
+                logger.error(error);
+        });
+    }
 }
 bot.on("guildMemberAdd", function(member) {
     greet(member.id);
 });
 
 bot.on('message', function (user, userID, channelID, message, evt) {
-    message = message.toLowerCase();
+    message = message.toLowerCase().escapeDiacritics();
     if(channelID != helpChannelId && userID != malbotId) {
         if (message.indexOf('python') !== -1)
             pythonZen(channelID);
@@ -138,7 +147,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             else if (message.indexOf(',') !== -1) {
                 var args = message.substring(message.indexOf(',') + 1);
                 switch (args) {
-                    case ' podaj kawę':
+                    case ' podaj kawe':
                         coffee(channelID);
                         break;
 
@@ -151,9 +160,22 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                     default:
                         break;
 
-                    // Just add any case commands if you want to...
+                    // TODO: Just add any case commands if you want to...
                 }
             }
         }
     }
 });
+
+String.prototype.escapeDiacritics = function()
+{
+    return this.replace(/ą/g, 'a').replace(/Ą/g, 'A')
+    .replace(/ć/g, 'c').replace(/Ć/g, 'C')
+    .replace(/ę/g, 'e').replace(/Ę/g, 'E')
+    .replace(/ł/g, 'l').replace(/Ł/g, 'L')
+    .replace(/ń/g, 'n').replace(/Ń/g, 'N')
+    .replace(/ó/g, 'o').replace(/Ó/g, 'O')
+    .replace(/ś/g, 's').replace(/Ś/g, 'S')
+    .replace(/ż/g, 'z').replace(/Ż/g, 'Z')
+    .replace(/ź/g, 'z').replace(/Ź/g, 'Z');
+}
