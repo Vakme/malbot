@@ -1,23 +1,55 @@
 var Discord = require('discord.io');
 var logger = require('winston');
-var auth = require('./auth.json');
-var msg = require('./msg.json');
 var ontime = require('ontime');
 var request = require("request");
-var cheerio = require("cheerio");
 var unsplash = require('unsplash-api');
+var natural = require('natural');
+var tokenizer = new natural.AggressiveTokenizerPl();
+var stemmer = natural.StemmerPl;
+var classifier = new natural.LogisticRegressionClassifier();
 
-var helpChannelId = 342377931772919828;
-var malbotId = 352478053877678082;
-var generalChannelId = 342050278964592640;
+
+var auth = require('./auth.json');
+var config = require('./config.json');
+var Utils = require('./utils');
+var stopwords = require('./stopwords.json');
+
 var photoArray = [];
+var utils = new Utils();
 
+function init() {
 // Configure logger settings
-logger.remove(logger.transports.Console);
-logger.add(logger.transports.Console, {
-    colorize: true
+    logger.remove(logger.transports.Console);
+    logger.add(logger.transports.Console, {
+        colorize: true
+    });
+    logger.level = 'debug';
+    logger.info('Logger ready');
+    unsplash.init(auth.unsplashId);
+    unsplash.searchPhotos('coffee', null, 1, 30, function (error, photos, link) {
+        photoArray = photos;
+        logger.info('Unsplash ready');
+    });
+}
+
+
+
+classifier.addDocument([''], 'other');
+classifier.addDocument(['dzien dobry', 'dobry wieczor', 'czesc', 'hej', 'witam', 'siemka', 'siemanko'], 'greetings');
+classifier.addDocument(['dobranoc', 'papa', 'zegnam', 'zobaczenia', 'widzenia'], 'byebyes');
+classifier.train();
+
+classifier.addDocument('dzien dobry', 'greetings');
+classifier.train();
+classifier.addDocument('dobry wieczor', 'greetings');
+classifier.train();
+
+classifier.events.on('trainedWithDocument', function (obj) {
+    logger.info('Finished learning' + obj);
+    /*classifier.save('classifier.json', function(err, classifier) {
+        logger.info('Finished saving');
+    });*/
 });
-logger.level = 'debug';
 
 // Initialize Discord Bot
 var bot = new Discord.Client({
@@ -26,110 +58,65 @@ var bot = new Discord.Client({
 });
 
 bot.on('ready', function (evt) {
+    init();
+    utils.initBot(bot);
     logger.info('Connected');
     logger.info('Logged in as: ');
     logger.info(bot.username + ' - (' + bot.id + ')');
-    unsplashInit();
 });
-
 
 ontime({
     cycle: '7:00:00'
 }, function (ot) {
-    packtDownload();
+    utils.packtDownload(logger);
     ot.done();
 });
 
-function unsplashInit() {
-    unsplash.init(auth.unsplashId);
-    unsplash.searchPhotos('coffee', null, 1, 30, function (error, photos, link) {
-        photoArray = photos;
-        logger.info('Unsplash ready');
-    });
-}
-
-function packtDownload() {
-    request({
-        uri: "https://www.packtpub.com/packt/offers/free-learning"
-    }, function (error, response, body) {
-        logger.info("PacktPub daily info");
-        var $ = cheerio.load(body);
-        var title = $(".dotd-title > h2").text();
-        bot.sendMessage({
-            to: generalChannelId,
-            message: msg.packtMsgBeg + title + msg.packtMsgEnd
-        });
-    });
-}
-
-function greet(id) {
-    logger.info("New Member: " + id);
-    bot.sendMessage({
-        to: generalChannelId,
-        message: '<@' + id + '>' + msg.publicMsg
-    });
-    bot.sendMessage({
-        to: id,
-        message: msg.privateMsg
-    });
-}
-
-function pythonZen(channel) {
-    request({
-        uri: "http://misztal.edu.pl/logs/the-zen-of-python/"
-    }, function (error, response, body) {
-        var $ = cheerio.load(body);
-        var table = [];
-         $("blockquote em").each(function(i, elem) {
-             table[i] = $(this).text();
-         });
-        var rand = Math.floor((Math.random() * table.length));
-        bot.sendMessage({
-            to: channel,
-            message: '*' + table[rand] + '* - The Zen of Python'
-        });
-    });
-}
-
-function coffee(channelID) {
-    if(!Array.isArray(photoArray) || !photoArray.length) {
-        logger.info('Zjebałaś');
-        bot.sendMessage({
-            to: channelID,
-            message: 'Zdjęcia są ładowane. Spróbuj za chwilę.'
-        });
-    }
-    else {
-        var photo = photoArray[Math.floor(Math.random() * photoArray.length)];
-        bot.sendMessage({
-            to: channelID,
-            embed: {
-                title: 'Kawa!',
-                description: 'Oto kawa specjalnie dla ciebie!',
-                url: photo.links.self,
-                image: {
-                    url: photo.urls.small
-                },
-                author: {
-                    name: photo.user.name,
-                    url: photo.user.portfolio_url
-                }
-            }
-        }, function (error, response) {
-            if (error != null)
-                logger.error(error);
-        });
-    }
-}
+ontime({
+    cycle: '8:00:00'
+}, function (ot) {
+    utils.holiday(config.channels.generalChannelId);
+    ot.done();
+});
 bot.on("guildMemberAdd", function(member) {
-    greet(member.id);
+    utils.greet(member.id, logger);
 });
 
 bot.on('message', function (user, userID, channelID, message, evt) {
+    var tokenized = tokenizer.tokenize(message.toLowerCase().escapeDiacritics());
+    tokenized = tokenized.filter(function (el) {
+        return stopwords.indexOf(el) === -1;
+    });
+    //logger.info(tokenized);
     message = message.toLowerCase().escapeDiacritics();
-    if(channelID != helpChannelId && userID != malbotId) {
+    if(channelID != config.channels.helpChannelId && userID != config.malbotId) {
+        console.log(classifier.getClassifications(message));
+        if(classifier.getClassifications(message)[0].label === 'greetings')  {
+            classifier.addDocument(message, 'greetings');
+            classifier.train();
+            bot.sendMessage({
+                to: channelID,
+                message: 'Witaj, <@' + userID + '>!'
+            });
+        }
+        else if(classifier.getClassifications(message)[0].label === 'byebyes') {
+            classifier.addDocument(message, 'byebyes');
+            classifier.train();
+            bot.sendMessage({
+                to: channelID,
+                message: 'Żegnaj, <@' + userID + '>!'
+            });
+        }
+        else {
+            classifier.addDocument(message, 'other');
+            classifier.train();
+
+        }
         if (message.indexOf('python') !== -1)
-            pythonZen(channelID);
+            utils.pythonZen(channelID);
+        if (message.indexOf('!test') !== -1)
+            utils.coffee(channelID, photoArray);
+
         if (message.indexOf('definitywnie') !== -1)
             bot.sendMessage({
                 to: channelID,
@@ -138,17 +125,17 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         else if (message.indexOf('malbocie') !== -1) {
             if (message.indexOf('czy') !== -1) {
                 var answers = ['Oczywiście', 'No co ty!', 'Niewykluczone', 'No', 'Tiaaa...', 'Definitywnie!'];
-                var randomnumber = Math.floor(Math.random() * answers.length);
+                var randomNumber = utils.randomArrayIndex(answers.length);
                 bot.sendMessage({
                     to: channelID,
-                    message: answers[randomnumber]
+                    message: answers[randomNumber]
                 });
             }
             else if (message.indexOf(',') !== -1) {
                 var args = message.substring(message.indexOf(',') + 1);
                 switch (args) {
                     case ' podaj kawe':
-                        coffee(channelID);
+                        utils.coffee(channelID, photoArray);
                         break;
 
                     case ' koduj':
@@ -178,4 +165,4 @@ String.prototype.escapeDiacritics = function()
     .replace(/ś/g, 's').replace(/Ś/g, 'S')
     .replace(/ż/g, 'z').replace(/Ż/g, 'Z')
     .replace(/ź/g, 'z').replace(/Ź/g, 'Z');
-}
+};

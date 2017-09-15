@@ -4,13 +4,16 @@
   "description": "Brand new bot for discord",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon bot.js"
   },
   "author": "FemDev",
   "license": "ISC",
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
     "discord.io": "^2.5.2",
+    "natural": "^0.5.4",
+    "nodemon": "^1.12.1",
     "ontime": "0.0.3",
     "request": "^2.81.0",
     "unsplash-api": "^1.2.0",

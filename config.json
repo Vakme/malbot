@@ -1,0 +1,26 @@
+{
+  "malbotId": 352478053877678082,
+  "channels": {
+    "helpChannelId" : 342377931772919828,
+    "generalChannelId": 342050278964592640
+  },
+  "packt": {
+    "url":  "https://www.packtpub.com/packt/offers/free-learning"
+  },
+  "zen": {
+    "url": "http://misztal.edu.pl/logs/the-zen-of-python/",
+    "name": "The Zen of Python"
+  },
+  "holiday": {
+    "url": "http://uhc.polishgames.net/today.php?language=2",
+    "info": "Święta dzisiaj: ",
+    "author": "Andret",
+    "authorUrl": "https://play.google.com/store/apps/dev?id=6216551837205210929"
+  },
+  "unsplash": {
+    "errorMsg": "Zdjęcia są ładowane. Spróbuj za chwilę.",
+    "title": "Kawa!",
+    "description": "Oto kawa specjalnie dla ciebie!"
+  }
+
+}
