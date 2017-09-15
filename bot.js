@@ -5,7 +5,6 @@ var request = require("request");
 var unsplash = require('unsplash-api');
 var natural = require('natural');
 var tokenizer = new natural.AggressiveTokenizerPl();
-var stemmer = natural.StemmerPl;
 var classifier = new natural.LogisticRegressionClassifier();
 
 
